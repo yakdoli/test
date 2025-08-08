@@ -1,0 +1,4 @@
+FROM qwen2.5vl:latest
+PARAMETER num_batch 2048
+PARAMETER num_ctx 32000
+PARAMETER num_gpu 99

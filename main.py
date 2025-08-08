@@ -36,21 +36,21 @@ class PDFToMarkdownConverter:
         
         print(f"✅ {len(pdf_files)}개의 PDF 파일 발견")
         
-        # Ollama 서버 연결 확인
-        if not self.ollama_client.check_ollama_connection():
-            print("❌ Ollama 서버에 연결할 수 없습니다.")
-            print("   다음 명령어로 Ollama를 시작하세요: ollama serve")
+        # Xinference 서버 연결 확인
+        if not self.ollama_client.check_xinference_connection():
+            print("❌ Xinference 서버에 연결할 수 없습니다.")
+            print("   다음 명령어로 Xinference를 시작하세요: xinference launch --model-engine vLLM --model-name qwen2-vl-instruct --size-in-billions 7 --model-format gptq --quantization Int8")
             return False
         
-        print("✅ Ollama 서버 연결 성공")
+        print("✅ Xinference 서버 연결 성공")
         
         # 모델 사용 가능 여부 확인
         if not self.ollama_client.check_model_availability():
-            print(f"❌ 모델 '{config.OLLAMA_MODEL}'을 사용할 수 없습니다.")
-            print(f"   다음 명령어로 모델을 다운로드하세요: ollama pull {config.OLLAMA_MODEL}")
+            print(f"❌ 모델 '{config.XINFERENCE_MODEL_NAME}'을 사용할 수 없습니다.")
+            print("   Xinference에서 모델이 실행 중인지 확인하세요.")
             return False
         
-        print(f"✅ 모델 '{config.OLLAMA_MODEL}' 사용 가능")
+        print(f"✅ 모델 '{config.XINFERENCE_MODEL_NAME}' 사용 가능")
         
         return True
     
@@ -157,7 +157,6 @@ class PDFToMarkdownConverter:
         print("🚀 PDF to Markdown 변환기 시작")
         print("=" * 50)
         
-        # 실행 환경 확인
         if not self.check_prerequisites():
             print("\n❌ 실행 환경이 준비되지 않았습니다.")
             sys.exit(1)
@@ -166,20 +165,11 @@ class PDFToMarkdownConverter:
         
         # 1단계: PDF를 이미지로 변환
         print("📸 1단계: PDF를 이미지로 변환")
-        pdf_images = self.pdf_converter.convert_all_pdfs()
+        pdf_images = self.pdf_converter.convert_pdfs(specific_pdf)
         
         if not pdf_images:
-            print("❌ 변환할 PDF가 없습니다.")
+            print("❌ 처리할 PDF가 없습니다.")
             return
-        
-        # 특정 PDF만 처리하는 경우
-        if specific_pdf:
-            if specific_pdf in pdf_images:
-                pdf_images = {specific_pdf: pdf_images[specific_pdf]}
-                print(f"🎯 특정 PDF만 처리: {specific_pdf}")
-            else:
-                print(f"❌ 지정된 PDF를 찾을 수 없습니다: {specific_pdf}")
-                return
         
         print(f"\n📝 2단계: 마크다운으로 변환 ({len(pdf_images)}개 PDF)")
         

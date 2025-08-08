@@ -1,0 +1,102 @@
+{
+  "session_id": "0e8bebad76ed",
+  "started_at": "2025-08-08T10:19:51.395267",
+  "last_updated": "2025-08-08T10:19:59.408596",
+  "total_tasks": 1,
+  "completed_tasks": 1,
+  "failed_tasks": 0,
+  "task_states": {
+    "DICOM": {
+      "pdf_path": "/workspace/pdf/pdfs/DICOM.pdf",
+      "output_path": "/workspace/pdf/output/DICOM_enhanced_checkpoint.md",
+      "status": "completed",
+      "created_at": "2025-08-08T10:19:51.395217",
+      "started_at": null,
+      "completed_at": "2025-08-08T10:19:59.408596",
+      "error_message": null,
+      "retry_count": 0
+    }
+  },
+  "chunk_states": {
+    "DICOM_chunk_000": {
+      "chunk_id": "DICOM_chunk_000",
+      "pdf_name": "DICOM",
+      "chunk_index": 0,
+      "total_chunks": 4,
+      "page_start": 1,
+      "page_end": 3,
+      "status": "completed",
+      "started_at": "2025-08-08T10:19:51.395893",
+      "completed_at": "2025-08-08T10:19:53.398609",
+      "error_message": null,
+      "processed_pages": [
+        1,
+        2,
+        3
+      ]
+    },
+    "DICOM_chunk_001": {
+      "chunk_id": "DICOM_chunk_001",
+      "pdf_name": "DICOM",
+      "chunk_index": 1,
+      "total_chunks": 4,
+      "page_start": 4,
+      "page_end": 6,
+      "status": "completed",
+      "started_at": "2025-08-08T10:19:53.399248",
+      "completed_at": "2025-08-08T10:19:55.401817",
+      "error_message": null,
+      "processed_pages": [
+        4,
+        5,
+        6
+      ]
+    },
+    "DICOM_chunk_002": {
+      "chunk_id": "DICOM_chunk_002",
+      "pdf_name": "DICOM",
+      "chunk_index": 2,
+      "total_chunks": 4,
+      "page_start": 7,
+      "page_end": 9,
+      "status": "completed",
+      "started_at": "2025-08-08T10:19:55.402312",
+      "completed_at": "2025-08-08T10:19:57.404893",
+      "error_message": null,
+      "processed_pages": [
+        7,
+        8,
+        9
+      ]
+    },
+    "DICOM_chunk_003": {
+      "chunk_id": "DICOM_chunk_003",
+      "pdf_name": "DICOM",
+      "chunk_index": 3,
+      "total_chunks": 4,
+      "page_start": 10,
+      "page_end": 12,
+      "status": "completed",
+      "started_at": "2025-08-08T10:19:57.405383",
+      "completed_at": "2025-08-08T10:19:59.408043",
+      "error_message": null,
+      "processed_pages": [
+        10,
+        11,
+        12
+      ]
+    }
+  },
+  "configuration": {
+    "dpi": 150,
+    "image_format": "JPEG",
+    "ollama_model": "qwen2-vl-instruct",
+    "syncfusion_mode": true,
+    "extract_code_snippets": true,
+    "parallel_processing": true,
+    "use_direct_qwen": true,
+    "chunk_size": 3,
+    "max_concurrent": 12
+  },
+  "progress_tracker": null
+}

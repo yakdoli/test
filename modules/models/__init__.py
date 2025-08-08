@@ -13,12 +13,10 @@ from .task_models import (
 
 from .progress_models import (
     ProgressLevel,
-    ProgressState,
-    PDFProgress,
+    ProgressInfo,
+    ProgressTracker,
     ResourceStats,
-    PerformanceStats,
-    ProcessingState,
-    ProgressUpdate
+    PerformanceMetrics
 )
 
 __all__ = [
@@ -32,10 +30,8 @@ __all__ = [
     
     # Progress models
     'ProgressLevel',
-    'ProgressState',
-    'PDFProgress',
+    'ProgressInfo',
+    'ProgressTracker',
     'ResourceStats',
-    'PerformanceStats',
-    'ProcessingState',
-    'ProgressUpdate'
+    'PerformanceMetrics'
 ]

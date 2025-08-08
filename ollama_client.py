@@ -1,17 +1,19 @@
 """
-Ollama API를 통해 이미지를 마크다운으로 변환하는 모듈
+Xinference API를 통해 이미지를 마크다운으로 변환하는 모듈
 """
 import requests
 import json
 import base64
+import time
 from pathlib import Path
 from typing import List, Optional
 import config
 
-class OllamaClient:
+class XinferenceClient:
     def __init__(self):
-        self.base_url = config.OLLAMA_BASE_URL
-        self.model = config.OLLAMA_MODEL
+        self.base_url = config.XINFERENCE_BASE_URL
+        self.model_name = config.XINFERENCE_MODEL_NAME
+        self.model_uid = config.XINFERENCE_MODEL_UID
         
     def encode_image_to_base64(self, image_path: Path) -> str:
         """
@@ -26,32 +28,34 @@ class OllamaClient:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     
-    def check_ollama_connection(self) -> bool:
+    def check_xinference_connection(self) -> bool:
         """
-        Ollama 서버 연결 상태 확인
+        Xinference 서버 연결 상태 확인
         
         Returns:
             bool: 연결 성공 여부
         """
         try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            response = requests.get(f"{self.base_url}/v1/models", timeout=5)
             return response.status_code == 200
         except requests.exceptions.RequestException:
             return False
     
     def check_model_availability(self) -> bool:
         """
-        지정된 모델이 사용 가능한지 확인
+        지정된 모델이 사용 가능한지 확인하고 model_uid 설정
         
         Returns:
             bool: 모델 사용 가능 여부
         """
         try:
-            response = requests.get(f"{self.base_url}/api/tags")
+            response = requests.get(f"{self.base_url}/v1/models")
             if response.status_code == 200:
-                models = response.json().get('models', [])
-                model_names = [model['name'] for model in models]
-                return self.model in model_names
+                models = response.json().get('data', [])
+                for model in models:
+                    if model.get('id', '').startswith(self.model_name):
+                        self.model_uid = model.get('id')
+                        return True
             return False
         except requests.exceptions.RequestException:
             return False
@@ -112,7 +116,7 @@ Focus on creating documentation that serves as high-quality training data for LL
     
     def convert_image_to_markdown(self, image_path: Path) -> Optional[str]:
         """
-        이미지를 마크다운 텍스트로 변환
+        이미지를 마크다운 텍스트로 변환 (Xinference API 사용)
         
         Args:
             image_path: 이미지 파일 경로
@@ -120,35 +124,60 @@ Focus on creating documentation that serves as high-quality training data for LL
         Returns:
             Optional[str]: 변환된 마크다운 텍스트 또는 None
         """
-        try:
-            # 이미지를 base64로 인코딩
-            image_base64 = self.encode_image_to_base64(image_path)
-            
-            # Ollama API 요청 데이터
-            payload = {
-                "model": self.model,
-                "prompt": self.get_syncfusion_prompt(),
-                "images": [image_base64],
-                "stream": False
-            }
-            
-            # API 요청
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json=payload,
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result.get('response', '')
-            else:
-                print(f"❌ API 요청 실패: {response.status_code}")
-                return None
+        max_retries = 3
+        timeout = 120
+
+        for attempt in range(max_retries):
+            try:
+                image_base64 = self.encode_image_to_base64(image_path)
                 
-        except Exception as e:
-            print(f"❌ 이미지 변환 실패 ({image_path.name}): {str(e)}")
-            return None
+                # Xinference OpenAI 호환 API 사용
+                payload = {
+                    "model": self.model_uid or self.model_name,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": self.get_syncfusion_prompt()
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{image_base64}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "max_tokens": 4000,
+                    "stream": False
+                }
+                
+                response = requests.post(
+                    f"{self.base_url}/v1/chat/completions",
+                    json=payload,
+                    timeout=timeout,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    return result['choices'][0]['message']['content']
+                else:
+                    print(f"❌ API 요청 실패 (시도 {attempt + 1}/{max_retries}): {response.status_code}")
+                    print(f"   응답: {response.text}")
+            
+            except requests.exceptions.Timeout:
+                print(f"⏰ 타임아웃 (시도 {attempt + 1}/{max_retries})")
+            except Exception as e:
+                print(f"❌ 이미지 변환 실패 ({image_path.name}, 시도 {attempt + 1}/{max_retries}): {str(e)}")
+            
+            if attempt < max_retries - 1:
+                time.sleep(2)
+
+        return None
     
     def convert_images_to_markdown(self, image_paths: List[Path]) -> str:
         """
@@ -283,16 +312,19 @@ optimized_for: ["llm-training", "rag-retrieval"]
         
         return code_snippets
 
+# 호환성을 위한 별칭
+OllamaClient = XinferenceClient
+
 if __name__ == "__main__":
-    client = OllamaClient()
+    client = XinferenceClient()
     
     # 연결 테스트
-    if client.check_ollama_connection():
-        print("✅ Ollama 서버 연결 성공")
+    if client.check_xinference_connection():
+        print("✅ Xinference 서버 연결 성공")
         
         if client.check_model_availability():
-            print(f"✅ 모델 '{client.model}' 사용 가능")
+            print(f"✅ 모델 '{client.model_name}' 사용 가능 (UID: {client.model_uid})")
         else:
-            print(f"❌ 모델 '{client.model}' 사용 불가능")
+            print(f"❌ 모델 '{client.model_name}' 사용 불가능")
     else:
-        print("❌ Ollama 서버 연결 실패")
+        print("❌ Xinference 서버 연결 실패")
