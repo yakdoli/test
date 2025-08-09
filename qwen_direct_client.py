@@ -12,8 +12,11 @@ from datetime import datetime
 import psutil
 from tqdm.asyncio import tqdm
 
-from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+from transformers.models.qwen2_5_vl.modeling_qwen2_5_vl import Qwen2_5_VLForConditionalGeneration
+from transformers import AutoTokenizer, AutoProcessor
 from qwen_vl_utils import process_vision_info
+from modules.utils.prompt_utils import build_syncfusion_prompt
+from modules.utils.md_staging import save_page_markdown
 import config
 
 
@@ -141,7 +144,7 @@ class DirectQwenVLClient:
                 except Exception:
                     print("⚠️ Flash Attention 2 미지원 - 기본 attention 사용")
             
-            self.model = Qwen2VLForConditionalGeneration.from_pretrained(**load_kwargs)
+            self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(**load_kwargs)
             
             # Evaluation 모드로 설정
             self.model.eval()
@@ -153,7 +156,7 @@ class DirectQwenVLClient:
             print(f"❌ 모델 초기화 실패: {e}")
             return False
     
-    def get_syncfusion_prompt(self) -> str:
+    def get_syncfusion_prompt_legacy(self) -> str:
         """Syncfusion SDK 매뉴얼에 특화된 프롬프트 생성"""
         return """Convert this Syncfusion SDK documentation image to structured markdown format optimized for LLM fine-tuning and RAG applications.
 
@@ -202,6 +205,105 @@ CRITICAL REQUIREMENTS:
 
 Focus on creating documentation that serves as high-quality training data for LLM fine-tuning while being immediately useful for RAG retrieval systems."""
 
+    # NOTE: Deprecated local prompt function (replaced by modules.utils.prompt_utils.build_syncfusion_prompt)
+    # def get_syncfusion_prompt(self, image_path: Path) -> str:
+        """Syncfusion 특화 프롬프트 (동적 메타데이터 포함)
+        - 미세조정 데이터셋/RAG 일관성 강화를 위해 동적 컨텍스트를 포함한 지시문
+        - 컨텍스트/메타 정보 표준화, 섹션 스키마 고정, 언어/코드/표/리스트/링크 처리 규약 강화
+        - OCR 정규화 규칙 포함 (띄어쓰기, 하이픈 줄바꿈, 특수문자 통합 등)
+        """
+        import re
+        from datetime import datetime
+
+        file_name = image_path.name
+        parent_dir = image_path.parent.name
+        stem = image_path.stem
+        m = re.search(r"page[_-]?(\d+)", stem, re.IGNORECASE)
+        page_number = m.group(1) if m else "unknown"
+        iso_ts = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+        return f"""
+You are a meticulous technical documentation OCR and structuring agent specialized in Syncfusion SDK manuals.
+Your task is to convert the given documentation image into HIGH-FIDELITY Markdown that is suitable for LLM fine-tuning datasets and RAG retrieval.
+
+CONTEXT VALUES (use EXACTLY in the metadata header):
+- source: image
+- domain: syncfusion-sdk
+- task: pdf-ocr-to-markdown
+- language: auto (keep original; do not translate)
+- source_filename: {file_name}
+- document_name: {parent_dir}
+- page_number: {page_number}
+- page_id: {parent_dir}#page_{page_number}
+- timestamp: {iso_ts}
+- fidelity: lossless
+
+GLOBAL OUTPUT CONTRACT (MUST FOLLOW EXACTLY):
+- Top-level must start with an HTML comment metadata block:
+  <!--
+  source: image
+  domain: syncfusion-sdk
+  task: pdf-ocr-to-markdown
+  language: auto (keep original; do not translate)
+  source_filename: {file_name}
+  document_name: {parent_dir}
+  page_number: {page_number}
+  page_id: {parent_dir}#page_{page_number}
+  timestamp: {iso_ts}
+  fidelity: lossless
+  -->
+- After metadata, output the structured content only in Markdown. No extra explanations.
+- Do not invent content. If text is cropped/unclear, include "[unclear]" and keep position.
+- Preserve all text as-is except for OCR normalization rules below.
+
+OCR NORMALIZATION RULES:
+- Merge hyphenated line breaks: "inter-
+  face" -> "interface" when it's the same token.
+- Normalize multiple spaces to single spaces, but preserve indentation inside code blocks.
+- Preserve Unicode punctuation and math symbols as-is.
+- Keep list numbering as shown (don't renumber).
+- Keep casing exactly; do not title-case or sentence-case.
+
+STRUCTURE SCHEMA (ENFORCE):
+# {{Page/Main Title}}
+
+## Overview
+- 1-3 bullets summarizing the page scope using only visible text.
+
+## Content
+- Reconstruct hierarchy (H2/H3/H4) exactly as in image.
+- Tables: use GitHub-flavored Markdown. Keep column order, headers, alignment if visible.
+- Lists: preserve nesting and markers (-, *, 1.) as-is.
+- Callouts: map to blockquotes with labels (Note:, Warning:, Tip:).
+- Figures/Captions: include as "Figure: ..." lines when present.
+
+## API Reference (if applicable)
+- Namespace, Class, Members (Methods/Properties/Events/Enums) in subsections.
+- Parameters table: Name | Type | Description | Default | Required
+- Returns: Type + description.
+- Exceptions: bullet list.
+
+## Code Examples (multi-language supported)
+- Extract ALL code exactly. Use fenced blocks with language: ```csharp, ```vb, ```xml, ```xaml, ```js, ```css, ```ts, ```python.
+- Keep full signatures, imports/usings, comments, region markers.
+- Inline code in text should be wrapped with backticks.
+
+## Cross References
+- Add See also: bullet list of explicit links/texts present on the page. Do not fabricate.
+
+## RAG Annotations
+- At the end, add an HTML comment with tags and keywords derived ONLY from visible content:
+  <!-- tags: [product, module, control, api, version?] keywords: [k1, k2, ...] -->
+
+ADDITIONAL RULES:
+- Units, versions, file paths, and identifiers must be preserved exactly.
+- Do not reflow long lines inside code blocks.
+- Preserve table cell line breaks using <br> if present.
+- For cross-page references without URLs, keep the exact anchor text.
+
+Output now in the specified format.
+"""
+
     async def convert_image_to_markdown(self, image_path: Path) -> Optional[str]:
         """단일 이미지를 마크다운으로 변환"""
         if not self.model:
@@ -218,7 +320,7 @@ Focus on creating documentation that serves as high-quality training data for LL
                     "role": "user",
                     "content": [
                         {"type": "image", "image": str(image_path)},
-                        {"type": "text", "text": self.get_syncfusion_prompt()}
+                        {"type": "text", "text": build_syncfusion_prompt(image_path)}
                     ]
                 }
             ]
@@ -243,12 +345,14 @@ Focus on creating documentation that serves as high-quality training data for LL
                 inputs = inputs.to(self.model.device)
             
             # 생성 설정
+            # 결정론적 생성 설정: 미세조정 데이터셋 일관성 보장
             generation_config = {
-                "max_new_tokens": 4000,
+                "max_new_tokens": 8192,
                 "do_sample": False,
-                "temperature": 0.1,
                 "top_p": 0.9,
-                "pad_token_id": self.tokenizer.eos_token_id
+                "use_cache": True,
+                "repetition_penalty": 1.05,
+                "pad_token_id": self.tokenizer.eos_token_id,
             }
             
             # 텍스트 생성
@@ -318,6 +422,26 @@ Focus on creating documentation that serves as high-quality training data for LL
                     results[page_num] = f"<!-- 페이지 {page_num} 변환 실패 -->"
                     failed_pages.append(page_num)
                     print(f"   ❌ 페이지 {page_num} 실패")
+
+                # MD 스테이징 저장 (페이지 단위)
+                try:
+                    if markdown_text and markdown_text.strip():
+                        save_page_markdown(
+                            image_path,
+                            markdown_text,
+                            mode="scale_up",
+                            prompt=build_syncfusion_prompt(image_path),
+                            extra_meta={
+                                "client": "DirectQwenVLClient",
+                                "generation": {
+                                    "max_new_tokens": 8192,
+                                    "do_sample": False,
+                                    "top_p": 0.9,
+                                }
+                            },
+                        )
+                except Exception as _e:
+                    print(f"   ⚠️ MD 스테이징 저장 경고: {str(_e)}")
                 
                 # 메모리 모니터링
                 memory_usage = self.resource_manager.get_memory_usage()

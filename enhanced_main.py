@@ -304,6 +304,18 @@ async def main():
     except SystemExit:
         return
     
+    # CLI로 전달된 Xinference Base URL 적용 (가능한 한 이른 시점에)
+    if hasattr(args, 'xinference_base_url') and args.xinference_base_url:
+        new_url = args.xinference_base_url.strip()
+        try:
+            prev = getattr(config, 'XINFERENCE_BASE_URL', None)
+            config.XINFERENCE_BASE_URL = new_url
+            import os as _os
+            _os.environ['XINFERENCE_BASE_URL'] = config.XINFERENCE_BASE_URL
+            print(f"🌐 Xinference Base URL 적용: {prev} -> {config.XINFERENCE_BASE_URL}")
+        except Exception as e:
+            print(f"⚠️ Xinference Base URL 적용 실패: {e}")
+
     # 도움말 또는 목록 표시
     if hasattr(args, 'list') and args.list:
         converter.cli.list_available_pdfs(detailed=True)

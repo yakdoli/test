@@ -193,11 +193,30 @@ class PDFToMarkdownConverter:
 
 def main():
     """메인 함수"""
+    # 간단한 CLI 옵션 처리: --xinference-base-url
+    try:
+        if any(arg.startswith('--xinference-base-url') or arg == '--base-url' or arg == '--x-base-url' for arg in sys.argv[1:]):
+            # 지원 형태: --xinference-base-url URL 또는 --xinference-base-url=URL
+            for i, arg in enumerate(sys.argv[1:], start=1):
+                if arg.startswith('--xinference-base-url='):
+                    url = arg.split('=', 1)[1]
+                    config.XINFERENCE_BASE_URL = url
+                elif arg in ('--xinference-base-url', '--base-url', '--x-base-url') and i + 1 < len(sys.argv):
+                    url = sys.argv[i + 1]
+                    config.XINFERENCE_BASE_URL = url
+            import os as _os
+            _os.environ['XINFERENCE_BASE_URL'] = config.XINFERENCE_BASE_URL
+            print(f"🌐 Xinference Base URL: {config.XINFERENCE_BASE_URL}")
+    except Exception as e:
+        print(f"⚠️ Xinference Base URL 파싱 실패: {e}")
+
     converter = PDFToMarkdownConverter()
     
     # 명령행 인수 처리
     if len(sys.argv) > 1:
-        specific_pdf = sys.argv[1]
+        # 위에서 URL을 소비했을 수 있으므로, 첫 번째 비옵션 인수를 특정 PDF로 간주
+        non_option_args = [a for a in sys.argv[1:] if not a.startswith('-')]
+        specific_pdf = non_option_args[0] if non_option_args else None
         converter.run(specific_pdf)
     else:
         converter.run()

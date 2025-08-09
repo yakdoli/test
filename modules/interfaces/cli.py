@@ -243,6 +243,15 @@ class CLIInterface:
             help=f'출력 디렉토리를 지정합니다. (기본값: {config.OUTPUT_DIR})'
         )
         
+        # Xinference 설정 관련 옵션
+        parser.add_argument(
+            '--xinference-base-url', '--x-base-url', '--base-url',
+            dest='xinference_base_url',
+            type=str,
+            metavar='URL',
+            help='Xinference 서버 Base URL (예: http://localhost:9997)'
+        )
+
         parser.add_argument(
             '--config', '-c',
             type=Path,
@@ -324,6 +333,15 @@ class CLIInterface:
         # 설정 파일 검증
         if args.config and not args.config.exists():
             errors.append(f"설정 파일을 찾을 수 없습니다: {args.config}")
+
+        # Xinference Base URL 검증
+        if getattr(args, 'xinference_base_url', None):
+            url = args.xinference_base_url.strip()
+            if not (url.startswith('http://') or url.startswith('https://')):
+                errors.append("--xinference-base-url 값은 http:// 또는 https:// 로 시작해야 합니다.")
+            # 간단한 형태 검증
+            if ' ' in url or '://' not in url:
+                errors.append("--xinference-base-url 값이 유효한 URL 형식이 아닙니다.")
         
         # 상충하는 옵션 검증
         if args.resume and args.force:

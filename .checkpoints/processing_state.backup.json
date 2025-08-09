@@ -1,16 +1,16 @@
 {
-  "session_id": "0e8bebad76ed",
-  "started_at": "2025-08-08T10:19:51.395267",
-  "last_updated": "2025-08-08T10:19:59.408043",
+  "session_id": "3eb88cfcf293",
+  "started_at": "2025-08-08T11:17:39.867196",
+  "last_updated": "2025-08-08T11:17:39.867197",
   "total_tasks": 1,
   "completed_tasks": 0,
   "failed_tasks": 0,
   "task_states": {
     "DICOM": {
       "pdf_path": "/workspace/pdf/pdfs/DICOM.pdf",
-      "output_path": "/workspace/pdf/output/DICOM_enhanced_checkpoint.md",
+      "output_path": "/workspace/pdf/output/DICOM_max_scale_optimized.md",
       "status": "not_started",
-      "created_at": "2025-08-08T10:19:51.395217",
+      "created_at": "2025-08-08T11:17:39.867121",
       "started_at": null,
       "completed_at": null,
       "error_message": null,
@@ -22,69 +22,40 @@
       "chunk_id": "DICOM_chunk_000",
       "pdf_name": "DICOM",
       "chunk_index": 0,
-      "total_chunks": 4,
+      "total_chunks": 3,
       "page_start": 1,
-      "page_end": 3,
-      "status": "completed",
-      "started_at": "2025-08-08T10:19:51.395893",
-      "completed_at": "2025-08-08T10:19:53.398609",
+      "page_end": 4,
+      "status": "not_started",
+      "started_at": null,
+      "completed_at": null,
       "error_message": null,
-      "processed_pages": [
-        1,
-        2,
-        3
-      ]
+      "processed_pages": []
     },
     "DICOM_chunk_001": {
       "chunk_id": "DICOM_chunk_001",
       "pdf_name": "DICOM",
       "chunk_index": 1,
-      "total_chunks": 4,
-      "page_start": 4,
-      "page_end": 6,
-      "status": "completed",
-      "started_at": "2025-08-08T10:19:53.399248",
-      "completed_at": "2025-08-08T10:19:55.401817",
+      "total_chunks": 3,
+      "page_start": 5,
+      "page_end": 8,
+      "status": "not_started",
+      "started_at": null,
+      "completed_at": null,
       "error_message": null,
-      "processed_pages": [
-        4,
-        5,
-        6
-      ]
+      "processed_pages": []
     },
     "DICOM_chunk_002": {
       "chunk_id": "DICOM_chunk_002",
       "pdf_name": "DICOM",
       "chunk_index": 2,
-      "total_chunks": 4,
-      "page_start": 7,
-      "page_end": 9,
-      "status": "completed",
-      "started_at": "2025-08-08T10:19:55.402312",
-      "completed_at": "2025-08-08T10:19:57.404893",
-      "error_message": null,
-      "processed_pages": [
-        7,
-        8,
-        9
-      ]
-    },
-    "DICOM_chunk_003": {
-      "chunk_id": "DICOM_chunk_003",
-      "pdf_name": "DICOM",
-      "chunk_index": 3,
-      "total_chunks": 4,
-      "page_start": 10,
+      "total_chunks": 3,
+      "page_start": 9,
       "page_end": 12,
-      "status": "completed",
-      "started_at": "2025-08-08T10:19:57.405383",
-      "completed_at": "2025-08-08T10:19:59.408043",
+      "status": "not_started",
+      "started_at": null,
+      "completed_at": null,
       "error_message": null,
-      "processed_pages": [
-        10,
-        11,
-        12
-      ]
+      "processed_pages": []
     }
   },
   "configuration": {
