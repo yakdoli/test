@@ -25,7 +25,11 @@ from modules.utils.md_staging import save_page_markdown
 
 def process_isolated_image_batch(args_tuple) -> List[str]:
     """프로세스 격리된 이미지 배치 처리 (Xinference API 호출)"""
-    from qwen_vl_utils import process_vision_info  # 유효성 확인 용도
+    # qwen-vl-utils는 선택적 의존성: 없으면 유효성 검사만 건너뜀
+    try:
+        from qwen_vl_utils import process_vision_info  # 유효성 확인 용도
+    except Exception:
+        process_vision_info = None  # type: ignore
     import base64
     import requests
 
@@ -60,15 +64,16 @@ def process_isolated_image_batch(args_tuple) -> List[str]:
             try:
                 # qwen-vl-utils로 메시지 스키마 검증(이미지 경로 유효성 등)
                 try:
-                    messages_for_validation = [{
-                        "role": "user",
-                        "content": [
-                            {"type": "image", "image": str(image_path)},
-                            {"type": "text", "text": build_syncfusion_prompt(image_path)}
-                        ]
-                    }]
-                    # 반환값은 사용하지 않지만, 오류 발생 시 조기 감지 목적
-                    _ = process_vision_info(messages_for_validation)
+                    if process_vision_info is not None:
+                        messages_for_validation = [{
+                            "role": "user",
+                            "content": [
+                                {"type": "image", "image": str(image_path)},
+                                {"type": "text", "text": build_syncfusion_prompt(image_path)}
+                            ]
+                        }]
+                        # 반환값은 사용하지 않지만, 오류 발생 시 조기 감지 목적
+                        _ = process_vision_info(messages_for_validation)
                 except Exception as ve:
                     print(f"   ⚠️ 입력 유효성 경고(워커 {worker_id}): {image_path.name} - {ve}")
 
@@ -82,8 +87,8 @@ def process_isolated_image_batch(args_tuple) -> List[str]:
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": build_syncfusion_prompt(image_path)},
-                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},
+                                {"type": "text", "text": build_syncfusion_prompt(image_path)}
                             ]
                         }
                     ],
@@ -374,39 +379,40 @@ class ProcessIsolatedQwenClient:
         try:
             import requests
             base_url = getattr(config, "XINFERENCE_BASE_URL", "http://localhost:9997")
-            resp = requests.get(f"{base_url}/v1/models", timeout=10)
-            if resp.status_code != 200:
-                return f"<!-- Xinference 헬스체크 실패: HTTP {resp.status_code} -->"
-            data = resp.json()
-            models = data.get('data', []) if isinstance(data, dict) else []
             name = getattr(config, 'XINFERENCE_MODEL_NAME', 'qwen2.5-vl-instruct')
             found = None
-            for m in models:
-                mid = m.get('id') or m.get('model')
-                if not mid:
-                    continue
-                if mid.startswith(name):
-                    found = mid
-                    break
-            if not found and getattr(config, 'XINFERENCE_MODEL_UID', None):
-                found = getattr(config, 'XINFERENCE_MODEL_UID')
-            if not found:
-                print("❌ Xinference에 대상 모델이 로드되어 있지 않습니다. start_xinference.sh 실행 후 /v1/models에 모델이 보여야 합니다.")
-                return "<!-- Xinference 모델 미로딩: start_xinference.sh로 모델 구동 후 재시도 -->"
-            self.xinference_model_id = found
+            try:
+                resp = requests.get(f"{base_url}/v1/models", timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models = data.get('data', []) if isinstance(data, dict) else []
+                    for m in models:
+                        mid = m.get('id') or m.get('model')
+                        if mid and (mid == name or mid.startswith(name)):
+                            found = mid
+                            break
+            except Exception:
+                # 헬스체크 실패는 치명적이지 않음. 기본 모델명으로 진행
+                pass
+
+            # 우선순위: UID > 헬스체크 발견값 > 설정된 이름
+            self.xinference_model_id = getattr(config, 'XINFERENCE_MODEL_UID', None) or found or name
             # 워커에 환경변수로 전달(스폰 시 상속)
             os.environ['XINFERENCE_BASE_URL'] = base_url
-            os.environ['XINFERENCE_RESOLVED_MODEL'] = self.xinference_model_id
-            print(f"🔗 Xinference 모델 확인: {self.xinference_model_id}")
+            os.environ['XINFERENCE_RESOLVED_MODEL'] = str(self.xinference_model_id)
+            print(f"🔗 Xinference 모델 사용: {self.xinference_model_id}")
         except Exception as e:
             print(f"⚠️ Xinference 모델 확인 중 예외: {e}")
             # 계속 시도하되, 서버 측에서 500 발생 시 재시도 로직이 처리
         
         total_images = len(image_paths)
         # 워커 수 기준 균등 분할 (Xinference 모드에서는 GPU와 무관)
-        max_workers = self.process_pool._max_workers if self.process_pool else 1
-        safe_concurrency = getattr(config, 'MAX_CONCURRENT_REQUESTS', 6)
-        num_batches = min(max_workers, total_images, safe_concurrency) if total_images > 0 else 0
+        try:
+            max_workers = self.process_pool._max_workers if self.process_pool else 1  # type: ignore[attr-defined]
+        except Exception:
+            max_workers = 1
+        safe_concurrency = max(1, min(getattr(config, 'MAX_CONCURRENT_REQUESTS', 3), 4))
+        num_batches = min(max_workers, total_images, safe_concurrency) if total_images > 0 else 1
 
         batches: List[Tuple[int, List[Path]]] = []
         for i in range(num_batches):

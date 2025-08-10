@@ -1,0 +1,18 @@
+{
+  "pdf_path": "C:\\workspace\\test\\pdfs\\common.pdf",
+  "pdf_hash": "a56708ae5282",
+  "metadata": {
+    "dpi": 150,
+    "page_count": 145,
+    "image_format": "JPEG",
+    "processing_time_seconds": 6.173109,
+    "created_at": "2025-08-09T11:22:15.745244",
+    "completed_at": "2025-08-09T11:22:21.918353",
+    "pdf_size_bytes": 5986510
+  },
+  "timestamp": "2025-08-09T11:22:21.929358",
+  "config_snapshot": {
+    "dpi": 150,
+    "image_format": "JPEG"
+  }
+}

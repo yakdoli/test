@@ -1,0 +1,18 @@
+{
+  "pdf_path": "C:\\workspace\\test\\pdfs\\tools.pdf",
+  "pdf_hash": "e1f7d8ba74fd",
+  "metadata": {
+    "dpi": 150,
+    "page_count": 2434,
+    "image_format": "JPEG",
+    "processing_time_seconds": 95.17383,
+    "created_at": "2025-08-09T11:24:38.308174",
+    "completed_at": "2025-08-09T11:26:13.482004",
+    "pdf_size_bytes": 38255913
+  },
+  "timestamp": "2025-08-09T11:26:13.596372",
+  "config_snapshot": {
+    "dpi": 150,
+    "image_format": "JPEG"
+  }
+}

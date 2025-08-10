@@ -13,22 +13,32 @@ from pathlib import Path
 from typing import Optional
 
 import config
-from pdf_converter import PDFConverter
 
 
 class DirectQwenPDFConverter:
     """Qwen2.5-VL 직접 로드 PDF 변환기 통합 클래스"""
     
     def __init__(self):
-        self.pdf_converter = PDFConverter()
+    # PDFConverter는 이 실행 경로에서 사용하지 않으므로 지연 로드/미사용 처리
         self.output_dir = config.OUTPUT_DIR
         self.client = None
         self.scaling_mode = None
         
     def select_scaling_approach(self) -> str:
         """스케일링 접근 방식 선택"""
+        # 원격 Xinference URL 사용 시에는 로컬 GPU 체크를 우회하고
+        # 프로세스 격리(원격 API) 모드로 강제 전환
+        if not getattr(config, "USE_DIRECT_QWEN", False):
+            print("🎯 Qwen2.5-VL 스케일링 방식 선택:")
+            print("=" * 60)
+            base_url = getattr(config, "XINFERENCE_BASE_URL", None) or "(미설정)"
+            print(f"🌐 원격 Xinference URL 모드 감지 → {base_url}")
+            print("✅ 로컬 GPU 없이도 동작: 프로세스 격리 모드(Xinference API) 사용")
+            print("🎯 권장 방식: Process Isolation (다중 프로세스 + 원격 API)")
+            return "3"
+
         import torch
-        
+
         gpu_count = torch.cuda.device_count() if torch.cuda.is_available() else 0
         
         print("🎯 Qwen2.5-VL 직접 로드 스케일링 방식 선택:")
@@ -326,18 +336,30 @@ async def main():
     """메인 함수"""
     # 간단한 CLI 옵션 처리: --xinference-base-url (직접 Qwen 모드에서도 일부 경로에서 참조될 수 있으므로 허용)
     try:
-        if any(arg.startswith('--xinference-base-url') or arg == '--base-url' or arg == '--x-base-url' for arg in sys.argv[1:]):
-            for i, arg in enumerate(sys.argv[1:], start=1):
+        args = sys.argv[1:]
+        if any(a.startswith('--xinference-') or a in ('--base-url','--x-base-url') for a in args):
+            for i, arg in enumerate(args, start=1):
                 if arg.startswith('--xinference-base-url='):
-                    url = arg.split('=', 1)[1]
-                    config.XINFERENCE_BASE_URL = url
-                elif arg in ('--xinference-base-url', '--base-url', '--x-base-url') and i + 1 < len(sys.argv):
-                    url = sys.argv[i + 1]
-                    config.XINFERENCE_BASE_URL = url
+                    config.XINFERENCE_BASE_URL = arg.split('=', 1)[1]
+                elif arg in ('--xinference-base-url', '--base-url', '--x-base-url') and i < len(args):
+                    config.XINFERENCE_BASE_URL = args[i]
+                elif arg.startswith('--xinference-model='):
+                    config.XINFERENCE_MODEL_NAME = arg.split('=', 1)[1]
+                elif arg in ('--xinference-model', '--model') and i < len(args):
+                    config.XINFERENCE_MODEL_NAME = args[i]
+                elif arg.startswith('--xinference-uid='):
+                    config.XINFERENCE_MODEL_UID = arg.split('=', 1)[1]
+                elif arg in ('--xinference-uid', '--model-uid') and i < len(args):
+                    config.XINFERENCE_MODEL_UID = args[i]
             # 하위 프로세스에서도 동일하게 사용하도록 환경변수 설정
             import os as _os
-            _os.environ['XINFERENCE_BASE_URL'] = config.XINFERENCE_BASE_URL
-            print(f"🌐 Xinference Base URL: {config.XINFERENCE_BASE_URL}")
+            if getattr(config, 'XINFERENCE_BASE_URL', None):
+                _os.environ['XINFERENCE_BASE_URL'] = config.XINFERENCE_BASE_URL
+                print(f"🌐 Xinference Base URL: {config.XINFERENCE_BASE_URL}")
+            if getattr(config, 'XINFERENCE_MODEL_NAME', None):
+                _os.environ['XINFERENCE_MODEL_NAME'] = config.XINFERENCE_MODEL_NAME
+            if getattr(config, 'XINFERENCE_MODEL_UID', None):
+                _os.environ['XINFERENCE_MODEL_UID'] = str(config.XINFERENCE_MODEL_UID)
     except Exception as e:
         print(f"⚠️ Xinference Base URL 파싱 실패: {e}")
 

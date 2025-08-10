@@ -117,7 +117,8 @@ class PDFConverter:
             pages = convert_from_path(
                 pdf_path, 
                 dpi=config.DPI,
-                fmt=config.IMAGE_FORMAT.lower()
+                fmt=config.IMAGE_FORMAT.lower(),
+                poppler_path=r"C:\Program Files\poppler-24.08.0\Library\bin"
             )
             
             image_paths = []

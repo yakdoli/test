@@ -31,11 +31,6 @@ ENV/
 *.swp
 *.swo
 
-# 프로젝트 특정
-staging/
-output/
-md_staging/
-*.log
 
 # OS
 .DS_Store

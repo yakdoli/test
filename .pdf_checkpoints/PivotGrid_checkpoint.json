@@ -1,0 +1,18 @@
+{
+  "pdf_path": "C:\\workspace\\test\\pdfs\\PivotGrid.pdf",
+  "pdf_hash": "82256f764019",
+  "metadata": {
+    "dpi": 150,
+    "page_count": 41,
+    "image_format": "JPEG",
+    "processing_time_seconds": 1.653066,
+    "created_at": "2025-08-09T11:24:27.434383",
+    "completed_at": "2025-08-09T11:24:29.087449",
+    "pdf_size_bytes": 1974998
+  },
+  "timestamp": "2025-08-09T11:24:29.091447",
+  "config_snapshot": {
+    "dpi": 150,
+    "image_format": "JPEG"
+  }
+}

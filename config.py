@@ -13,7 +13,7 @@ MD_STAGING_DIR = BASE_DIR / "md_staging"  # 페이지 단위 Markdown 원본 저
 
 
 
-XINFERENCE_BASE_URL = "http://localhost:9997"
+XINFERENCE_BASE_URL = "http://123.37.28.120:9997"
 
 # Xinference 모델 설정
 XINFERENCE_MODEL_NAME = "qwen2.5-vl-instruct"

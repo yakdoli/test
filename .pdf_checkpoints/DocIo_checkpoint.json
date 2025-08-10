@@ -1,0 +1,18 @@
+{
+  "pdf_path": "C:\\workspace\\test\\pdfs\\DocIo.pdf",
+  "pdf_hash": "b5dbfeb12152",
+  "metadata": {
+    "dpi": 150,
+    "page_count": 387,
+    "image_format": "JPEG",
+    "processing_time_seconds": 13.812316,
+    "created_at": "2025-08-09T11:22:33.315846",
+    "completed_at": "2025-08-09T11:22:47.128162",
+    "pdf_size_bytes": 6219725
+  },
+  "timestamp": "2025-08-09T11:22:47.142113",
+  "config_snapshot": {
+    "dpi": 150,
+    "image_format": "JPEG"
+  }
+}
